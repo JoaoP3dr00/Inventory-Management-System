@@ -6,14 +6,13 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 /*
- * O objeto db de DatabaseManager deve ser passado pelas funções até ser usado para os comandos sql
+ *
  *
 */
 
 #include <iostream>
 #include <stdio.h>
-#include "DatabaseManager.h"
-#include "ProductManager.h"
+#include <limits>
 #include "libpq-fe.h"
 using namespace std;
 
@@ -21,6 +20,7 @@ PGresult *result;
 PGconn *conn;
 char x;
 const char *conninfo;
+int nfields, ntuples;
 string nome, tipo, marca;
 float preco;
 
@@ -82,22 +82,55 @@ void sql_insert(string nome, string marca, string tipo, float preco){
 	// Checking result
 	if(PQresultStatus(result) == PGRES_COMMAND_OK)
 		cout << "New product created successfully!" << endl << endl;
-	else
+	else{
 		cerr << "Message: " << PQresultErrorMessage(result) << endl << endl;
-	PQclear(result);
+		PQclear(result);
+		exit_nicely(conn);
+	}
 
 	return;
 }
+
+void sql_select(){
+	result = PQexec(conn, "SELECT * FROM product;");
+
+	// Checking result
+	if(PQresultStatus(result) != PGRES_TUPLES_OK){
+		cerr << "SET failed: %s" << PQerrorMessage(conn) << endl << endl;
+		PQclear(result);
+		exit_nicely(conn);
+
+		return;
+	}
+
+	nfields = PQnfields(result);
+	ntuples = PQntuples(result);
+
+	cout << "|  ";
+	for(int i = 0; i < nfields; i++){
+		cout << PQfname(result, i) << "  |  ";
+	}
+	cout << endl;
+
+	// Aplicação de uma matriz
+	cout << "   ";
+	for(int i = 0; i < ntuples; i++){
+		for(int j = 0; j < nfields; j++){
+			cout << PQgetvalue(result, i, j) << "    ";
+		}
+		cout << endl << "   ";
+	}
+	cout << endl;
+
+	return;
+}
+
 /*
 void sql_delete(){
 
 }
 
 void sql_update(){
-
-}
-
-void sql_select(){
 
 }
 */
@@ -208,7 +241,8 @@ void create(){
 }
 
 void read(){
-	cout << "reading" << endl << endl;
+	// Realizar um select de uma linha específica dando opções no terminal quando read for selecionado
+
 	return;
 }
 
@@ -252,7 +286,7 @@ void admin(){
 		if(var == 'C' || var == 'c')
 			create();
 		else if(var == 'R' || var == 'r')
-			read();
+			sql_select	();
 		else if(var == 'U' || var == 'u')
 			update();
 		else if(var == 'D' || var == 'd')
