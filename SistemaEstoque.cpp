@@ -12,6 +12,8 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <thread>
+#include <chrono>
 #include <limits>
 #include "libpq-fe.h"
 using namespace std;
@@ -61,8 +63,10 @@ void db_connect(){
 
 			cout << "Want db stats? Y/N" << endl;
 			cin >> x;
-			if(x == 'y' || x == 'Y')
+			if(x == 'y' || x == 'Y'){
 				conn_stats(conn);
+				std::this_thread::sleep_for(std::chrono::seconds(5));
+			}
 		}
 	} catch (const exception& e){
 		cerr << "Error: " << e.what() << endl << endl;
@@ -125,15 +129,56 @@ void sql_select(){
 	return;
 }
 
-/*
-void sql_delete(){
 
+void sql_delete(int id){
+	const char *paramValues[1] = {to_string(id).c_str()};
+	int a = to_string(id).length();
+	const int paramLengths[1] = {a};
+	const int paramFormats[1] = {0};
+	result = PQexecParams(conn, "DELETE FROM product WHERE id=$1", 1, NULL, paramValues, paramLengths, paramFormats, 0);
+
+	// Checking result
+	if(PQresultStatus(result) == PGRES_COMMAND_OK)
+		cout << "Product deleted successfully!" << endl << endl;
+	else{
+		cerr << "Message: " << PQresultErrorMessage(result) << endl << endl;
+		PQclear(result);
+		exit_nicely(conn);
+	}
+
+	return;
 }
 
-void sql_update(){
+void sql_update(int id, string nome, string marca, string tipo, float preco){
+	// Errado
 
+	if(preco == 0){
+		const char *paramValues[4] = {nome.c_str(), marca.c_str(), tipo.c_str(), to_string(id).c_str()};
+		int x = to_string(id).length(), a = nome.length(), b = marca.length(), c = tipo.length();
+		const int paramLengths[4] = {x, a, b, c};
+		const int paramFormats[4] = {0, 0, 0, 0};
+
+		result = PQexecParams(conn, "UPDATE product SET nome=$1, marca=$2, tipo=$3 WHERE id=$4", 4, NULL, paramValues, paramLengths, paramFormats, 0);
+	}else{
+		const char *paramValues[5] = {nome.c_str(), marca.c_str(), tipo.c_str(), to_string(preco).c_str(), to_string(id).c_str()};
+		int x = to_string(id).length(), a = nome.length(), b = marca.length(), c = tipo.length(), d = to_string(preco).length();
+		const int paramLengths[5] = {x, a, b, c, d};
+		const int paramFormats[5] = {0, 0, 0, 0, 0};
+
+		result = PQexecParams(conn, "UPDATE product SET nome=$1, marca=$2, tipo=$3, preco=$4 WHERE id=$5", 5, NULL, paramValues, paramLengths, paramFormats, 0);
+	}
+
+	// Checking result
+	if(PQresultStatus(result) == PGRES_COMMAND_OK)
+		cout << "Product updated successfully!" << endl << endl;
+	else{
+		cerr << "Message: " << PQresultErrorMessage(result) << endl << endl;
+		PQclear(result);
+		exit_nicely(conn);
+	}
+
+	return;
 }
-*/
 
 /*#### Product Management Functions ####*/
 
@@ -246,13 +291,155 @@ void read(){
 	return;
 }
 
-void update(){
+void delete_(){
+	try{
+		int id;
+
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		cout << "~ Deleting Product ~\n" << endl;
+
+		while(true){
+			cout << "ID: ";
+
+			if(cin >> id){
+				if(id >= 0){
+					break;
+				}else{
+					cout << "Type again!" << endl << endl;;
+				}
+			}else{
+				cin.clear();
+				cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+				cout << "Invalid input!" << endl << endl;
+			}
+		}
+
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		cout << endl;
+
+		sql_delete(id);
+	} catch (const exception& e){
+		cerr << "Error: " << e.what() << endl;
+	}
 
 	return;
 }
 
-void delete_(){
+void update(){
+	try{
+		int id;
 
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		cout << "~ Updating product ~\n" << endl;
+
+		while(true){
+			cout << "ID: ";
+
+			if(cin >> id){
+				if(id >= 0){
+					break;
+				}else{
+					cout << "Type again!" << endl << endl;;
+				}
+			}else{
+				cin.clear();
+				cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+				cout << "Invalid input!" << endl << endl;
+			}
+		}
+
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+		while(true){
+			cout << "Name: ";
+
+			getline(cin, nome);
+
+			if(!nome.empty()){
+				bool isstring = true;
+
+				for(char c : nome){
+					if(!isalpha(c) && !isspace(c)){
+						isstring = false;
+					}
+				}
+
+				if(isstring){
+					break;
+				}else{
+					cout << "Type again!" << endl << endl;
+				}
+			}else{
+				break;
+			}
+		}
+
+		while(true){
+			cout << "Type: ";
+			getline(cin, tipo);
+
+			if(!tipo.empty()){
+				bool isstring = true;
+
+				for(char c : tipo){
+					if(!isalpha(c) && !isspace(c)){
+						isstring = false;
+					}
+				}
+
+				if(isstring){
+					break;
+				}else{
+					cout << "Type again!" << endl << endl;
+				}
+			}else{
+				break;
+			}
+		}
+
+		while(true){
+			cout << "Brand: ";
+			getline(cin, marca);
+
+			if(!marca.empty()){
+				bool isstring = true;
+
+				for(char c : marca){
+					if(!isalpha(c) && !isspace(c)){
+						isstring = false;
+					}
+				}
+
+				if(isstring){
+					break;
+				}else{
+					cout << "Type again!" << endl << endl;
+				}
+			}else{
+				break;
+			}
+		}
+
+		while(true){
+			cout << "Price: ";
+
+			if(preco >= 0){
+				break;
+			}else{
+				cout << "Type again!" << endl << endl;;
+			}
+
+		}
+
+		cin.ignore(numeric_limits<streamsize>::max(), '\n');
+		cout << endl;
+
+		sql_update(id, nome, marca, tipo, preco);
+	} catch (const exception& e){
+		cerr << "Error: " << e.what() << endl;
+	}
 	return;
 }
 
